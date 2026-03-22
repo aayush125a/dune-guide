@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dune Analytics — Daily Farming Guide</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --card: #111118;
+    --border: rgba(255,255,255,0.07);
+    --text: #e8e8f0;
+    --muted: #666680;
+
+    --d1: #ff6b35;
+    --d2: #f7c59f;
+    --d3: #00d4aa;
+    --d4: #a78bfa;
+    --d5: #38bdf8;
+    --d6: #f472b6;
+    --d7: #facc15;
+
+    --query: #00d4aa;
+    --contract: #a78bfa;
+    --dashboard: #f472b6;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Grid bg */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrap { position: relative; z-index: 1; max-width: 900px; margin: 0 auto; padding: 40px 24px 80px; }
+
+  /* HEADER */
+  .header {
+    text-align: center;
+    padding: 60px 0 50px;
+  }
+  .logo-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255,107,53,0.1);
+    border: 1px solid rgba(255,107,53,0.3);
+    border-radius: 100px;
+    padding: 6px 18px;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--d1);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 28px;
+  }
+  .logo-badge span { width: 6px; height: 6px; border-radius: 50%; background: var(--d1); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  h1 {
+    font-size: clamp(36px, 7vw, 64px);
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -2px;
+    margin-bottom: 16px;
+  }
+  h1 .hl { color: var(--d1); }
+  h1 .hl2 { color: var(--d3); }
+
+  .subtitle {
+    color: var(--muted);
+    font-size: 16px;
+    max-width: 500px;
+    margin: 0 auto 40px;
+    line-height: 1.6;
+  }
+
+  /* LEGEND */
+  .legend {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    flex-wrap: wrap;
+    margin-bottom: 60px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot.q { background: var(--query); }
+  .dot.c { background: var(--contract); }
+  .dot.d { background: var(--dashboard); }
+
+  /* DAYS */
+  .days { display: flex; flex-direction: column; gap: 20px; }
+
+  .day-card {
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    overflow: hidden;
+    position: relative;
+    transition: transform 0.2s, border-color 0.2s;
+  }
+  .day-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255,255,255,0.12);
+  }
+
+  .day-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+  .day-card.d1::before { background: var(--d1); }
+  .day-card.d2::before { background: var(--d2); }
+  .day-card.d3::before { background: var(--d3); }
+  .day-card.d4::before { background: var(--d4); }
+  .day-card.d5::before { background: var(--d5); }
+  .day-card.d6::before { background: var(--d6); }
+  .day-card.d7::before { background: var(--d7); }
+
+  .day-inner { padding: 28px 32px; }
+
+  .day-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+
+  .day-left { display: flex; align-items: center; gap: 16px; }
+
+  .day-num {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 5px 12px;
+    border-radius: 6px;
+    white-space: nowrap;
+  }
+  .d1 .day-num { background: rgba(255,107,53,0.15); color: var(--d1); }
+  .d2 .day-num { background: rgba(247,197,159,0.15); color: var(--d2); }
+  .d3 .day-num { background: rgba(0,212,170,0.15); color: var(--d3); }
+  .d4 .day-num { background: rgba(167,139,250,0.15); color: var(--d4); }
+  .d5 .day-num { background: rgba(56,189,248,0.15); color: var(--d5); }
+  .d6 .day-num { background: rgba(244,114,182,0.15); color: var(--d6); }
+  .d7 .day-num { background: rgba(250,204,21,0.15); color: var(--d7); }
+
+  .day-title {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+  }
+
+  .badges { display: flex; gap: 8px; flex-wrap: wrap; }
+  .badge {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 100px;
+    border: 1px solid;
+  }
+  .badge.query { color: var(--query); border-color: rgba(0,212,170,0.3); background: rgba(0,212,170,0.07); }
+  .badge.contract { color: var(--contract); border-color: rgba(167,139,250,0.3); background: rgba(167,139,250,0.07); }
+  .badge.dashboard { color: var(--dashboard); border-color: rgba(244,114,182,0.3); background: rgba(244,114,182,0.07); }
+
+  .day-body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  @media(max-width:600px){ .day-body { grid-template-columns: 1fr; } }
+
+  .section-box {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+  }
+  .section-box.full { grid-column: 1 / -1; }
+
+  .section-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+
+  .section-box ul { list-style: none; display: flex; flex-direction: column; gap: 7px; }
+  .section-box ul li {
+    font-size: 13px;
+    color: #c8c8d8;
+    line-height: 1.4;
+    padding-left: 16px;
+    position: relative;
+  }
+  .section-box ul li::before {
+    content: '→';
+    position: absolute;
+    left: 0;
+    color: var(--muted);
+    font-size: 11px;
+  }
+
+  .learn-box {
+    background: rgba(255,255,255,0.03);
+    border-radius: 10px;
+    padding: 16px 18px;
+    border: 1px solid var(--border);
+  }
+  .learn-text {
+    font-size: 13px;
+    color: #c8c8d8;
+    line-height: 1.6;
+  }
+  .learn-text strong { color: var(--text); font-weight: 700; }
+
+  /* DIVIDER */
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin: 50px 0 30px;
+  }
+  .divider-line { flex: 1; height: 1px; background: var(--border); }
+  .divider-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  /* STREAK SECTION */
+  .streak-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px;
+    margin-top: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .streak-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--d1), var(--d3), var(--d4), var(--d5));
+  }
+  .streak-title {
+    font-size: 22px;
+    font-weight: 800;
+    margin-bottom: 8px;
+    letter-spacing: -0.5px;
+  }
+  .streak-sub { color: var(--muted); font-size: 13px; margin-bottom: 24px; line-height: 1.6; }
+
+  .streak-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  @media(max-width:500px){ .streak-grid { grid-template-columns: 1fr; } }
+
+  .streak-item {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    text-align: center;
+  }
+  .streak-icon { font-size: 22px; margin-bottom: 6px; }
+  .streak-item-title { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+  .streak-item-desc { font-size: 11px; color: var(--muted); line-height: 1.4; }
+
+  /* SUMMARY TABLE */
+  .summary {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    margin-top: 20px;
+  }
+  .summary-header {
+    padding: 20px 28px;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+  }
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 10px 28px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: 12px 28px;
+    font-size: 13px;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+    vertical-align: middle;
+  }
+  tr:last-child td { border-bottom: none; }
+  .tag {
+    display: inline-block;
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 1px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    margin: 2px;
+  }
+  .tag.q { background: rgba(0,212,170,0.1); color: var(--query); }
+  .tag.c { background: rgba(167,139,250,0.1); color: var(--contract); }
+  .tag.d { background: rgba(244,114,182,0.1); color: var(--dashboard); }
+
+  .day-color-dot {
+    width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 8px;
+  }
+
+  footer {
+    text-align: center;
+    padding: 40px 0 0;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="logo-badge"><span></span> Airdrop Farming + Learning Guide</div>
+    <h1>Master <span class="hl">Dune</span><br>in <span class="hl2">7 Days</span></h1>
+    <p class="subtitle">A structured daily plan to farm Dune activity, build real on-chain analysis skills, and position yourself for a potential airdrop.</p>
+
+    <div class="legend">
+      <div class="legend-item"><div class="dot q"></div> Query</div>
+      <div class="legend-item"><div class="dot c"></div> Contract</div>
+      <div class="legend-item"><div class="dot d"></div> Dashboard</div>
+    </div>
+  </div>
+
+  <!-- DAYS -->
+  <div class="days">
+
+    <!-- DAY 1 -->
+    <div class="day-card d1">
+      <div class="day-inner">
+        <div class="day-top">
+          <div class="day-left">
+            <div class="day-num">Day 01</div>
+            <div class="day-title">🐋 Whale Wallet Tracker</div>
+          </div>
+          <div class="badges">
+            <span class="badge query">Query</span>
+            <span class="badge dashboard">Dashboard</span>
+          </div>
+        </div>
+        <div class="day-body">
+          <div class="section-box">
+            <div class="section-label">What To Do</div>
+            <ul>
+              <li>Search "whale tracker" on Dune Discover tab</li>
+              <li>Fork a query that tracks wallets with 1000+ ETH</li>
+              <li>Save with your own title and run it</li>
+              <li>Create a new Dashboard → add this query</li>
+            </ul>
+          </div>
+          <div class="learn-box">
+            <div class="section-label">What You Learn</div>
+            <p class="learn-text">How to spot <strong>accumulation phases</strong> before price moves. When whales buy quietly, price usually follows. This is how smart traders get early entries.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DAY 2 -->
+    <div class="day-card d2">
+      <div class="day-inner">
+        <div class="day-top">
+          <div class="day-left">
+            <div class="day-num">Day 02</div>
+            <div class="day-title">📊 DEX Volume Analysis</div>
+          </div>
+          <div class="badges">
+            <span class="badge query">Query</span>
+            <span class="badge contract">Contract</span>
+          </div>
+        </div>
+        <div class="day-body">
+          <div class="section-box">
+            <div class="section-label">What To Do</div>
+            <ul>
+              <li>Go to Settings → Contracts → Add a DEX contract</li>
+              <li>Find Uniswap or GMX contract on Arbiscan</li>
+              <li>Submit it as a decoding request</li>
+              <li>Write a query: daily volume of any token on DEX</li>
+            </ul>
+          </div>
+          <div class="learn-box">
+            <div class="section-label">What You Learn</div>
+            <p class="learn-text">How to distinguish <strong>real vs wash trading volume</strong>. Fake pumps have volume spikes with no new wallets. Real volume has consistent growth across many unique traders.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DAY 3 -->
+    <div class="day-card d3">
+      <div class="day-inner">
+        <div class="day-top">
+          <div class="day-left">
+            <div class="day-num">Day 03</div>
+            <div class="day-title">👥 Token Holder Concentration</div>
+          </div>
+          <div class="badges">
+            <span class="badge query">Query</span>
+            <span class="badge dashboard">Dashboard</span>
+          </div>
+        </div>
+        <div class="day-body">
+          <div class="section-box">
+            <div class="section-label">What To Do</div>
+            <ul>
+              <li>Fork a "token holders" query from Discover</li>
+              <li>Modify it for a token you're trading or watching</li>
+              <li>Add a pie chart visualization to your Dashboard</li>
+              <li>Run and analyze top 10 holder percentages</li>
+            </ul>
+          </div>
+          <div class="learn-box">
+            <div class="section-label">What You Learn</div>
+            <p class="learn-text">If <strong>3 wallets hold 70%+</strong> of a token, it's a rug risk. Healthy tokens have distributed ownership. This saves you from losing money on concentrated dumps.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DAY 4 -->
+    <div class="day-card d4">
+      <div class="day-inner">
+        <div class="day-top">
+          <div class="day-left">
+            <div class="day-num">Day 04</div>
+            <div class="day-title">💰 Smart Money Wallets</div>
+          </div>
+          <div class="badges">
+            <span class="badge query">Query</span>
+            <span class="badge dashboard">Dashboard</span>
+          </div>
+        </div>
+        <div class="day-body">
+          <div class="section-box">
+            <div class="section-label">What To Do</div>
+            <ul>
+              <li>Search "smart money" or "profitable wallets" on Discover</li>
+              <li>Fork a query tracking consistent profit wallets</li>
+              <li>Add a table widget to your Dashboard</li>
+              <li>Label and save 3 smart wallets you want to follow</li>
+            </ul>
+          </div>
+          <div class="learn-box">
+            <div class="section-label">What You Learn</div>
+            <p class="learn-text">How to <strong>copy-trade on-chain</strong> without a tool. These wallets bought tokens 2 weeks before 10x moves. Following them gives you a real trading edge.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DAY 5 -->
+    <div class="day-card d5">
+      <div class="day-inner">
+        <div class="day-top">
+          <div class="day-left">
+            <div class="day-num">Day 05</div>
+            <div class="day-title">🔍 New Protocol Traction</div>
+          </div>
+          <div class="badges">
+            <span class="badge query">Query</span>
+            <span class="badge contract">Contract</span>
+          </div>
+        </div>
+        <div class="day-body">
+          <div class="section-box">
+            <div class="section-label">What To Do</div>
+            <ul>
+              <li>Find a newly deployed contract on Arbiscan (last 30 days)</li>
+              <li>Submit it as a decoding request on Dune</li>
+              <li>Write a query: transaction count over time for new contracts</li>
+              <li>Compare 3 new protocols side by side</li>
+            </ul>
+          </div>
+          <div class="learn-box">
+            <div class="section-label">What You Learn</div>
+            <p class="learn-text">How to <strong>spot trends before Twitter does</strong>. Rising transaction counts on a new contract = organic growth happening. This is the earliest possible signal.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DAY 6 -->
+    <div class="day-card d6">
+      <div class="day-inner">
+        <div class="day-top">
+          <div class="day-left">
+            <div class="day-num">Day 06</div>
+            <div class="day-title">🏦 Liquidity Pool Monitor</div>
+          </div>
+          <div class="badges">
+            <span class="badge query">Query</span>
+            <span class="badge dashboard">Dashboard</span>
+            <span class="badge contract">Contract</span>
+          </div>
+        </div>
+        <div class="day-body">
+          <div class="section-box">
+            <div class="section-label">What To Do</div>
+            <ul>
+              <li>Add a liquidity pool contract from any DEX</li>
+              <li>Fork a "liquidity depth" query from Discover</li>
+              <li>Add a line chart to your Dashboard showing LP changes</li>
+              <li>Track if liquidity is being added or removed over 7 days</li>
+            </ul>
+          </div>
+          <div class="learn-box">
+            <div class="section-label">What You Learn</div>
+            <p class="learn-text">Sudden <strong>liquidity removal = rug warning</strong>. Steady LP growth means developer confidence. This is one of the most useful signals for DeFi token safety.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DAY 7 -->
+    <div class="day-card d7">
+      <div class="day-inner">
+        <div class="day-top">
+          <div class="day-left">
+            <div class="day-num">Day 07</div>
+            <div class="day-title">🚀 Build Your Master Dashboard</div>
+          </div>
+          <div class="badges">
+            <span class="badge query">Query</span>
+            <span class="badge dashboard">Dashboard</span>
+            <span class="badge contract">Contract</span>
+          </div>
+        </div>
+        <div class="day-body">
+          <div class="section-box full">
+            <div class="section-label">What To Do</div>
+            <ul>
+              <li>Create one final Dashboard that combines ALL 6 days of work</li>
+              <li>Add text widgets explaining what each section shows</li>
+              <li>Arrange: Whales → Volume → Holders → Smart Money → New Protocols → LP Health</li>
+              <li>Publish it publicly — this becomes your on-chain research page</li>
+              <li>Post the link on Twitter/X tagging @DuneAnalytics</li>
+            </ul>
+          </div>
+          <div class="learn-box full">
+            <div class="section-label">What You Achieve</div>
+            <p class="learn-text">You now have a <strong>complete on-chain research workflow</strong>. Every token you consider trading, run through this dashboard. Whales buying + real volume + distributed holders + LP growing = strong buy signal. This is how professional analysts think.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- STREAK SECTION -->
+  <div class="divider">
+    <div class="divider-line"></div>
+    <div class="divider-label">Daily Habit</div>
+    <div class="divider-line"></div>
+  </div>
+
+  <div class="streak-card">
+    <div class="streak-title">🔥 Maintain Your Streak</div>
+    <p class="streak-sub">Every single day, run at least 1 query. This is the most important thing for airdrop farming — consistent activity signals you're a real power user.</p>
+    <div class="streak-grid">
+      <div class="streak-item">
+        <div class="streak-icon">⚡</div>
+        <div class="streak-item-title">Run 1 Query Daily</div>
+        <div class="streak-item-desc">Open any saved query and hit Run. Takes 10 seconds.</div>
+      </div>
+      <div class="streak-item">
+        <div class="streak-icon">📝</div>
+        <div class="streak-item-title">Add 1 Contract/Week</div>
+        <div class="streak-item-desc">Submit a new contract from any explorer every 7 days.</div>
+      </div>
+      <div class="streak-item">
+        <div class="streak-icon">🎯</div>
+        <div class="streak-item-title">Update Dashboard Weekly</div>
+        <div class="streak-item-desc">Add a new visualization or text widget each week.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUMMARY TABLE -->
+  <div class="divider">
+    <div class="divider-line"></div>
+    <div class="divider-label">Weekly Summary</div>
+    <div class="divider-line"></div>
+  </div>
+
+  <div class="summary">
+    <div class="summary-header">What You Complete in 7 Days</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Day</th>
+          <th>Topic</th>
+          <th>Dune Activity</th>
+          <th>Trading Skill</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="day-color-dot" style="background:var(--d1)"></span>01</td>
+          <td>Whale Tracker</td>
+          <td><span class="tag q">Query</span><span class="tag d">Dashboard</span></td>
+          <td>Spot accumulation early</td>
+        </tr>
+        <tr>
+          <td><span class="day-color-dot" style="background:var(--d2)"></span>02</td>
+          <td>DEX Volume</td>
+          <td><span class="tag q">Query</span><span class="tag c">Contract</span></td>
+          <td>Detect fake volume</td>
+        </tr>
+        <tr>
+          <td><span class="day-color-dot" style="background:var(--d3)"></span>03</td>
+          <td>Holder Concentration</td>
+          <td><span class="tag q">Query</span><span class="tag d">Dashboard</span></td>
+          <td>Avoid rug pulls</td>
+        </tr>
+        <tr>
+          <td><span class="day-color-dot" style="background:var(--d4)"></span>04</td>
+          <td>Smart Money</td>
+          <td><span class="tag q">Query</span><span class="tag d">Dashboard</span></td>
+          <td>Copy profitable wallets</td>
+        </tr>
+        <tr>
+          <td><span class="day-color-dot" style="background:var(--d5)"></span>05</td>
+          <td>New Protocols</td>
+          <td><span class="tag q">Query</span><span class="tag c">Contract</span></td>
+          <td>Find gems before Twitter</td>
+        </tr>
+        <tr>
+          <td><span class="day-color-dot" style="background:var(--d6)"></span>06</td>
+          <td>Liquidity Pools</td>
+          <td><span class="tag q">Query</span><span class="tag d">Dashboard</span><span class="tag c">Contract</span></td>
+          <td>Detect rug warning signs</td>
+        </tr>
+        <tr>
+          <td><span class="day-color-dot" style="background:var(--d7)"></span>07</td>
+          <td>Master Dashboard</td>
+          <td><span class="tag q">Query</span><span class="tag d">Dashboard</span><span class="tag c">Contract</span></td>
+          <td>Full research workflow</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <footer>dune.com &nbsp;·&nbsp; @DuneAnalytics &nbsp;·&nbsp; Farm + Learn + Earn</footer>
+
+</div>
+</body>
+</html>
